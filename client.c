@@ -24,7 +24,7 @@ typedef struct
 	char data[1024];
 } Packet;
 
-struct sockaddr_in servAddr;
+struct sockaddr_in server_address;
 
 int calculate_checksum(Packet packet)
 {
@@ -136,11 +136,11 @@ int open_socket(char *host_address, int port_number)
 	struct hostent *host;
 	host = (struct hostent *)gethostbyname(host_address);
 
-	memset(&servAddr, 0, sizeof(servAddr));
+	memset(&server_address, 0, sizeof(server_address));
 
-	servAddr.sin_port = htons(port_number);
-	servAddr.sin_family = AF_INET;
-	servAddr.sin_addr = *((struct in_addr *)host->h_addr);
+	server_address.sin_port = htons(port_number);
+	server_address.sin_family = AF_INET;
+	server_address.sin_addr = *((struct in_addr *)host->h_addr);
 
 	return sockfd;
 }
@@ -170,7 +170,7 @@ void send_packets(int socket_fd, int file_fd)
 {
 	printf("[LOG] -- sending packets\n");
 	int seq = 0;
-	socklen_t addr_len = sizeof(servAddr);
+	socklen_t addr_len = sizeof(server_address);
 	Packet packet;
 	int bytes;
 	while ((bytes = read(file_fd, packet.data, sizeof(packet.data))) > 0)
@@ -178,7 +178,7 @@ void send_packets(int socket_fd, int file_fd)
 		packet.header.seq_ack = seq;
 		packet.header.len = bytes;
 		packet.header.cksum = calculate_checksum(packet);
-		clientSend(socket_fd, (struct sockaddr *)&servAddr, addr_len, packet, 0);
+		clientSend(socket_fd, (struct sockaddr *)&server_address, addr_len, packet, 0);
 		seq = (seq + 1) % 2;
 	}
 
@@ -186,7 +186,7 @@ void send_packets(int socket_fd, int file_fd)
 	final.header.seq_ack = seq;
 	final.header.len = 0;
 	final.header.cksum = calculate_checksum(final);
-	clientSend(socket_fd, (struct sockaddr *)&servAddr, addr_len, final, 0);
+	clientSend(socket_fd, (struct sockaddr *)&server_address, addr_len, final, 0);
 
 	close(file_fd);
 	close(socket_fd);
